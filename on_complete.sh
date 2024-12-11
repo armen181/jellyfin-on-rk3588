@@ -10,12 +10,24 @@ OTHER_DIR="/mnt/nvme/data/media/Others"
 
 mkdir -p "$TV_DIR" "$MOVIES_DIR" "$MUSIC_DIR" "$BOOKS_DIR" "$OTHER_DIR"
 
-move_to_dir() {
+is_tv_show_folder() {
     local item="$1"
-    local target_dir="$2"
-    echo "Moving '$item' -> '$target_dir'"
-    mv "$item" "$target_dir"
+    if find "$item" -type f | grep -iqE '[sS][0-9][0-9]([-:]|)?[eE][0-9][0-9]'; then
+        return 0
+    else
+        return 1
+    fi
 }
+
+is_tv_show_file() {
+    local item="$1"
+    if [[ "$(basename "$item")" =~ [sS][0-9][0-9][-:]?[eE][0-9][0-9] ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 
 is_tv_show() {
     local item="$1"
@@ -73,12 +85,32 @@ is_book() {
     fi
 }
 
+extract_show_name() {
+    local filename="$1"
+    if [[ "$filename" =~ ^(.+?)[sS][0-9][0-9]([-:]|)?[eE][0-9][0-9] ]]; then
+        local show_name="${BASH_REMATCH[1]}"
+        show_name="$(echo "$show_name" | tr '[:lower:]' '[:upper:]')"
+        show_name="$(echo "$show_name" | sed 's/[^A-Z0-9]/_/g')"
+        show_name="$(echo "$show_name" | sed 's/_\+/_/g')"
+        show_name="$(echo "$show_name" | sed 's/^_//; s/_$//')"
+        echo "$show_name"
+    else
+        echo "UNKNOWN_SHOW"
+    fi
+}
 
 shopt -s nullglob
 for item in "$DOWNLOAD_DIR"/*; do
     [ -e "$item" ] || continue
 
-    if is_tv_show "$item"; then
+    if is_tv_show_file "$item"; then
+        base="$(basename "$item")"
+        show_name="$(extract_show_name "$base")"
+        target_folder="$TV_DIR/$show_name"
+        echo "$target_folder"
+        mkdir -p "$target_folder"
+        move_to_dir "$item" "$target_folder"
+    elif is_tv_show_folder "$item"; then
         move_to_dir "$item" "$TV_DIR"
     elif is_movie "$item"; then
         move_to_dir "$item" "$MOVIES_DIR"
