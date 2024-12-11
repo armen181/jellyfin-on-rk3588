@@ -20,7 +20,7 @@ move_to_dir() {
 is_tv_show() {
     local item="$1"
     if [ -d "$item" ]; then
-        if find "$item" -type f -iname '*[sS][0-9][0-9][-:]*[eE][0-9][0-9]*' | grep -q .; then
+        if find "$item" -type f | grep -iE '[sS][0-9][0-9]([-:]|)[eE][0-9][0-9]' > /dev/null; then
             return 0
         else
             return 1
